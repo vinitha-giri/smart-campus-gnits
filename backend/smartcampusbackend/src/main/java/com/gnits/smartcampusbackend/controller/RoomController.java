@@ -61,11 +61,27 @@ public class RoomController {
         if (day != null && !day.isBlank()) selectedDate = nextOccurrence(dayOfWeek, LocalDate.now());
 
         List<Room> rooms = roomId != null
-                ? roomRepository.findById(roomId).map(List::of).orElse(List.of())
-                : roomRepository.findAll();
-        List<Map<String, Object>> result = new ArrayList<>();
+        ? roomRepository.findById(roomId).map(List::of).orElse(List.of())
+        : roomRepository.findAll();
 
-        for (Room room : rooms) {
+List<TimetableEntry> allTimetable = timetableEntryRepository.findAll();
+
+List<Booking> allBookings = bookingRepository
+        .findByBookingDateAndStatusIgnoreCase(selectedDate, "CONFIRMED");
+
+Map<Integer, List<Booking>> bookingsByRoom = new HashMap<>();
+
+for (Booking booking : allBookings) {
+    if (booking.getRoomId() != null) {
+        bookingsByRoom
+                .computeIfAbsent(booking.getRoomId(), k -> new ArrayList<>())
+                .add(booking);
+    }
+}
+
+List<Map<String, Object>> result = new ArrayList<>();
+
+for (Room room : rooms) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("roomId", room.getRoomId());
             item.put("roomNo", room.getRoomNo());
@@ -89,18 +105,18 @@ public class RoomController {
                 continue;
             }
 
-            List<TimetableEntry> timetable = timetableEntryRepository.findAll().stream()
-                    .filter(e -> roomMatches(e, room))
-                    .filter(e -> dayMatches(e.getDayOfWeek(), dayOfWeek.name()))
-                    .toList();
+           List<TimetableEntry> timetable = allTimetable.stream()
+        .filter(e -> roomMatches(e, room))
+        .filter(e -> dayMatches(e.getDayOfWeek(), dayOfWeek.name()))
+        .toList();
             TimetableEntry activeClass = timetable.stream()
                     .filter(e -> e.getStartTime() != null && e.getEndTime() != null)
                     .filter(e -> overlaps(checkTime, e.getStartTime(), e.getEndTime()))
                     .findFirst().orElse(null);
             // Use the selected calendar date, not only today. This makes future
             // room availability/schedule views correctly account for one-off bookings.
-            List<Booking> bookings = bookingRepository.findByBookingDateAndRoomIdAndStatusIgnoreCase(
-                    selectedDate, room.getRoomId(), "CONFIRMED");
+            List<Booking> bookings = bookingsByRoom.getOrDefault(
+        room.getRoomId(), List.of());
             Booking activeBooking = bookings.stream()
                     .filter(b -> overlaps(checkTime, b.getStartTime(), b.getEndTime()))
                     .findFirst().orElse(null);
