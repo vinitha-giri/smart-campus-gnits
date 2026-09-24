@@ -1,0 +1,35 @@
+# Flutter
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+
+**/.metadata
+
+# Android / IDE
+**/.gradle/
+**/.idea/
+**/local.properties
+**/captures/
+*.iml
+
+# Java / Maven
+**/target/
+**/*.class
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Database backups
+*.sql
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

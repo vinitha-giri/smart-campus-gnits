@@ -1,0 +1,31 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: smart-campus-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smart_campus_db}
+      MYSQL_USER: ${MYSQL_USER:-smartcampus}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+    volumes:
+      - smart_campus_mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: .
+    container_name: smart-campus-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-smart_campus_db}
+      MYSQL_USER: ${MYSQL_USER:-smartcampus}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me}
+      PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  smart_campus_mysql:
