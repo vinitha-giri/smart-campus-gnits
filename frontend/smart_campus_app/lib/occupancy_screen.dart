@@ -27,9 +27,6 @@ class _OccupancyScreenState extends State<OccupancyScreen> {
   String classTypeFilter = 'ALL';
   String blockFilter = 'ALL';
   int minCapacity = 0;
-  int _fetchRequestId = 0;
-  bool _isFetching = false;
-bool _fetchQueued = false;
 
   static String _todayCampusDay() {
     final n = DateTime.now().weekday;
@@ -103,139 +100,21 @@ bool _fetchQueued = false;
       if (mounted) setState(() => error = 'Could not load timetable time slots: $e');
     } finally { if (mounted) setState(() => slotsLoading = false); }
   }
-Future<void> fetch({bool silent = false}) async {
-  if (time == null) {
-    if (mounted) {
-      setState(() => loading = false);
-    }
-    return;
+
+  Future<void> fetch({bool silent = false}) async {
+    if (time == null) { if (mounted) setState(() => loading = false); return; }
+    if (!silent && mounted) setState(() => loading = true);
+    try {
+      final uri = liveNow
+          ? Uri.parse('${ApiConfig.baseUrl}/api/rooms/live-status')
+          : Uri.parse('${ApiConfig.baseUrl}/api/occupancy').replace(queryParameters: {'day': day, 'time': time!, 'academicYear': '2026-2027', 'semesterNo': '1'});
+      final r = await http.get(uri);
+      if (r.statusCode != 200) throw Exception(r.body);
+      final list = jsonDecode(r.body) as List;
+      if (mounted) setState(() { rooms = list.map((e) => OccupancyRoom.fromJson(e)).toList(); error = null; });
+    } catch (e) { if (mounted) setState(() => error = e.toString()); }
+    finally { if (mounted && !silent) setState(() => loading = false); }
   }
-
-  // Prevent multiple database/API requests from running at the same time.
-  if (_isFetching) {
-    _fetchQueued = true;
-    return;
-  }
-
-  _isFetching = true;
-
-  if (!silent && mounted) {
-    setState(() => loading = true);
-  }
-
-  try {
-    final uri = liveNow
-        ? Uri.parse('${ApiConfig.baseUrl}/api/rooms/live-status')
-        : Uri.parse('${ApiConfig.baseUrl}/api/occupancy').replace(
-            queryParameters: {
-              'day': day,
-              'time': time!,
-              'academicYear': '2026-2027',
-              'semesterNo': '1',
-            },
-          );
-
-    final r = await http.get(uri);
-
-    if (r.statusCode != 200) {
-      throw Exception(r.body);
-    }
-
-    final list = jsonDecode(r.body) as List;
-
-    if (!mounted) return;
-
-    setState(() {
-      rooms = list
-          .map((e) => OccupancyRoom.fromJson(e))
-          .toList();
-      error = null;
-    });
-  } catch (e) {
-    if (mounted) {
-      setState(() {
-        error = e.toString();
-      });
-    }
-  } finally {
-    if (mounted && !silent) {
-      setState(() => loading = false);
-    }
-
-    // The current request has finished.
-    _isFetching = false;
-
-    // If another refresh was requested while this request
-    // was running, perform exactly ONE more refresh.
-    if (_fetchQueued && mounted) {
-      _fetchQueued = false;
-
-      Future.microtask(() {
-        if (mounted) {
-          fetch(silent: true);
-        }
-      });
-    }
-  }
-}
-  // Future<void> fetch({bool silent = false}) async {
-  // if (time == null) {
-  //   if (mounted) setState(() => loading = false);
-  //   return;
-  // }
-
-  // Give this request a unique number.
-  // If another request starts before this one finishes,
-  // this old request will no longer be allowed to update the UI.
-//   final requestId = ++_fetchRequestId;
-
-//   if (!silent && mounted) {
-//     setState(() => loading = true);
-//   }
-
-//   try {
-//     final uri = liveNow
-//         ? Uri.parse('${ApiConfig.baseUrl}/api/rooms/live-status')
-//         : Uri.parse('${ApiConfig.baseUrl}/api/occupancy').replace(
-//             queryParameters: {
-//               'day': day,
-//               'time': time!,
-//               'academicYear': '2026-2027',
-//               'semesterNo': '1',
-//             },
-//           );
-
-//     final r = await http.get(uri);
-
-//     if (r.statusCode != 200) {
-//       throw Exception(r.body);
-//     }
-
-//     final list = jsonDecode(r.body) as List;
-
-//     // Ignore this response if a newer request has already started.
-//     if (!mounted || requestId != _fetchRequestId) return;
-
-//     setState(() {
-//       rooms = list
-//           .map((e) => OccupancyRoom.fromJson(e))
-//           .toList();
-//       error = null;
-//     });
-//   } catch (e) {
-//     // Also ignore errors from old requests.
-//     if (!mounted || requestId != _fetchRequestId) return;
-
-//     setState(() {
-//       error = e.toString();
-//     });
-//   } finally {
-//     // Only the newest request is allowed to control the loading state.
-//     if (mounted && !silent && requestId == _fetchRequestId) {
-//       setState(() => loading = false);
-//     }
-//   }
-// }
 
   Color statusColor(String s) {
     switch (s) {
@@ -399,12 +278,12 @@ Future<void> fetch({bool silent = false}) async {
                         decoration: const InputDecoration(labelText: 'Block', prefixIcon: Icon(Icons.apartment_rounded)),
                         items: const [
                           DropdownMenuItem(value: 'ALL', child: Text('All blocks')),
-                          DropdownMenuItem(value: 'A', child: Text('A Block')),
-                          DropdownMenuItem(value: 'B', child: Text('B Block')),
-                          DropdownMenuItem(value: 'C', child: Text('C Block')),
-                          DropdownMenuItem(value: 'D', child: Text('D Block')),
-                          DropdownMenuItem(value: 'F', child: Text('F Block')),
-                          DropdownMenuItem(value: 'S', child: Text('S Block')),
+                          DropdownMenuItem(value: 'A', child: Text('Block A (Admin Block)')),
+                          DropdownMenuItem(value: 'B', child: Text('Block B (EEE Block)')),
+                          DropdownMenuItem(value: 'C', child: Text('Block C (CSE Block)')),
+                          DropdownMenuItem(value: 'D', child: Text('Block D (ECE Block)')),
+                          DropdownMenuItem(value: 'F', child: Text('Block F (IT Block)')),
+                          DropdownMenuItem(value: 'S', child: Text('Block S (Silver Jubilee Block)')),
                         ],
                         onChanged: (v) => setState(() => blockFilter = v ?? 'ALL'),
                       )),

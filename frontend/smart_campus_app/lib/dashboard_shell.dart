@@ -86,9 +86,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     switch (item.label) {
       case 'Classrooms': return RoomsScreen(
         initialQuery: roomSearch,
-        onOpenCampusMap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => CampusMapScreen(role: widget.role)),
-        ),
       );
       case 'Campus Map': return CampusMapScreen(role: widget.role);
       case 'Live Occupancy': return const OccupancyScreen();

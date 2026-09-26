@@ -9,8 +9,7 @@ import 'realtime_service.dart';
 
 class RoomsScreen extends StatefulWidget {
   final String initialQuery;
-  final VoidCallback? onOpenCampusMap;
-  const RoomsScreen({super.key, this.initialQuery = '', this.onOpenCampusMap});
+  const RoomsScreen({super.key, this.initialQuery = ''});
   @override
   State<RoomsScreen> createState() => _RoomsScreenState();
 }
@@ -156,13 +155,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
                       ],
                     ),
                   ),
-                  if (widget.onOpenCampusMap != null)
-                    OutlinedButton.icon(
-                      onPressed: widget.onOpenCampusMap,
-                      icon: const Icon(Icons.map_outlined, size: 17),
-                      label: const Text('Campus map'),
-                    ),
-                  const SizedBox(width: 6),
                   IconButton(onPressed: load, tooltip: 'Refresh live status', icon: const Icon(Icons.refresh_rounded)),
                 ],
               ),
@@ -191,9 +183,10 @@ class _RoomsScreenState extends State<RoomsScreen> {
                         ),
                       ),
                       SizedBox(
-                        width: 180,
+                        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 180,
                         child: DropdownButtonFormField<String>(
                           value: status,
+                          isExpanded: true,
                           decoration: const InputDecoration(labelText: 'Status'),
                           items: const [
                             DropdownMenuItem(value: 'ALL', child: Text('All rooms')),
@@ -207,25 +200,28 @@ class _RoomsScreenState extends State<RoomsScreen> {
                         ),
                       ),
                       SizedBox(
-                        width: 165,
+                        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 280,
                         child: DropdownButtonFormField<String>(
                           value: block,
+                          isExpanded: true,
                           decoration: const InputDecoration(labelText: 'Block'),
                           items: const [
                             DropdownMenuItem(value: 'ALL', child: Text('All blocks')),
-                            DropdownMenuItem(value: 'A', child: Text('Block A')),
-                            DropdownMenuItem(value: 'B', child: Text('Block B')),
-                            DropdownMenuItem(value: 'C', child: Text('Block C')),
-                            DropdownMenuItem(value: 'D', child: Text('Block D')),
-                            DropdownMenuItem(value: 'F', child: Text('Block F')),
+                            DropdownMenuItem(value: 'A', child: Text('Block A (Admin Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'B', child: Text('Block B (EEE Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'C', child: Text('Block C (CSE Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'D', child: Text('Block D (ECE Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'F', child: Text('Block F (IT Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'S', child: Text('Block S (Silver Jubilee Block)', maxLines: 1, overflow: TextOverflow.ellipsis)),
                           ],
                           onChanged: (v) { if (v != null) setState(() => block = v); },
                         ),
                       ),
                       SizedBox(
-                        width: 190,
+                        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 190,
                         child: DropdownButtonFormField<String>(
                           value: roomType,
+                          isExpanded: true,
                           decoration: const InputDecoration(labelText: 'Room type'),
                           items: const [
                             DropdownMenuItem(value: 'ALL', child: Text('All room types')),

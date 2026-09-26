@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "public": "frontend/smart_campus_app/build/web",
+    
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

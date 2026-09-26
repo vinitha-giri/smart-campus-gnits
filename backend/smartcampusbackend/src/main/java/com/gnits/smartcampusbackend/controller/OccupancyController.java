@@ -57,28 +57,9 @@ public class OccupancyController {
         LocalTime checkTime = LocalTime.parse(time);
         String normalizedDay = day.toUpperCase(Locale.ROOT);
         LocalDate selectedDate = nextOccurrence(normalizedDay);
-        List<Room> rooms = roomRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
 
-List<TimetableEntry> allTimetable = timetableEntryRepository.findAll();
-
-
-
-List<Booking> allBookings = bookingRepository
-        .findByBookingDateAndStatusIgnoreCase(selectedDate, "CONFIRMED");
-
-Map<Integer, List<Booking>> bookingsByRoom = new HashMap<>();
-
-for (Booking booking : allBookings) {
-    if (booking.getRoomId() != null) {
-        bookingsByRoom
-                .computeIfAbsent(booking.getRoomId(), k -> new ArrayList<>())
-                .add(booking);
-    }
-}
-
-List<Map<String, Object>> result = new ArrayList<>();
-
-for (Room room : rooms) {
+        for (Room room : roomRepository.findAll()) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("roomId", room.getRoomId()); item.put("roomNo", room.getRoomNo());
             item.put("floorNo", room.getFloorNo()); item.put("roomType", room.getRoomType()); item.put("capacity", room.getCapacity());
@@ -88,7 +69,7 @@ for (Room room : rooms) {
             // Read the actual timetable rows for this room.  Older imported
             // data can contain either the numeric room_id or only LH-No/room_no,
             // so match on both and normalize short day names (MON/TUE/...).
-            TimetableEntry match = allTimetable.stream()
+            TimetableEntry match = timetableEntryRepository.findAll().stream()
                     .filter(e -> roomMatches(e, room))
                     .filter(e -> dayMatches(e.getDayOfWeek(), normalizedDay))
                     .filter(e -> e.getStartTime() != null && e.getEndTime() != null)
@@ -96,9 +77,7 @@ for (Room room : rooms) {
                     .filter(e -> academicYear == null || academicYear.isBlank() || academicYear.equalsIgnoreCase(e.getAcademicYear()))
                     .filter(e -> semesterNo == null || Objects.equals(semesterNo, e.getSemesterNo()))
                     .findFirst().orElse(null);
-          Booking booking = bookingsByRoom
-        .getOrDefault(room.getRoomId(), List.of())
-        .stream()
+            Booking booking = bookingRepository.findByBookingDateAndRoomIdAndStatusIgnoreCase(selectedDate, room.getRoomId(), "CONFIRMED").stream()
                     .filter(b -> !checkTime.isBefore(b.getStartTime()) && checkTime.isBefore(b.getEndTime())).findFirst().orElse(null);
             if (match != null) {
                 item.put("status", "OCCUPIED"); item.put("subject", match.getSubjectName()); item.put("section", match.getSectionName()); item.put("lhNo", match.getLhNo()); item.put("startTime", match.getStartTime().toString()); item.put("endTime", match.getEndTime().toString());
