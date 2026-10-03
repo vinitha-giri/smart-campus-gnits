@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847860256580",
+    "project_id": "gnits-smart-campus",
+    "storage_bucket": "gnits-smart-campus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847860256580:android:f6eba7c8c63d90c9569111",
+        "android_client_info": {
+          "package_name": "com.example.smart_campus_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV8Qbp-Cngn_N3f5pT1rFLbDI2WHlMtno"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
