@@ -1,0 +1,770 @@
+[
+    {
+        "branch": "CSE-A",
+        "academic_year": "2026-2027",
+        "effective_date": "06-07-2026",
+        "rooms": {
+            "header_rooms": [
+                "S7"
+            ],
+            "resolved_rooms": [],
+            "unresolved_rooms": [
+                "S7"
+            ],
+            "inline_room_hints": []
+        },
+        "requires_review": true,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "10:00"
+            },
+            {
+                "start_time": "10:00",
+                "end_time": "11:00"
+            },
+            {
+                "start_time": "11:10",
+                "end_time": "12:10"
+            },
+            {
+                "start_time": "01:00",
+                "end_time": "02:00"
+            },
+            {
+                "start_time": "02:00",
+                "end_time": "03:00"
+            },
+            {
+                "start_time": "03:00",
+                "end_time": "04:00"
+            }
+        ],
+        "entries": [
+            {
+                "day": "MON",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "MON",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "MON",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "TUE",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "TUE",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "TUE",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "WED",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "WED",
+                "period": 3,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "Lab"
+            },
+            {
+                "day": "WED",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "THU",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "THU",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "THU",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "FRI",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "FRI",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "FRI",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BDA"
+            }
+        ],
+        "legend": {
+            "courses": [
+                {
+                    "raw_text": "( 1 2 7 F N ) :",
+                    "course_code": null,
+                    "faculty_raw": "Dr. E. Pranavi"
+                },
+                {
+                    "raw_text": "(127DS) Cryptography and Network Security :",
+                    "course_code": "127DS",
+                    "faculty_raw": "Dr. Jayashree"
+                },
+                {
+                    "raw_text": "Professional Data Science Elective-4 using R (127EY) : Dr.",
+                    "course_code": "127EY",
+                    "faculty_raw": "T. Rajesh"
+                },
+                {
+                    "raw_text": "Big Professional Data Analytics(127BX Elective-5 ) Mrs.",
+                    "course_code": null,
+                    "faculty_raw": "G. Sailaja"
+                },
+                {
+                    "raw_text": "Open Elective-2",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Behavioral Skills and Professional : Dr.",
+                    "course_code": null,
+                    "faculty_raw": "P. Aparna"
+                },
+                {
+                    "raw_text": "Communication (127KS)",
+                    "course_code": "127KS",
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Class Teaçher, Dr. T. Rajesh",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Dept. Timetable Coordinator Timetable",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Copy to: Individual StafIHODICentral Time",
+                    "course_code": null,
+                    "faculty_raw": "table"
+                }
+            ],
+            "labs": [
+                {
+                    "raw_text": "Se c u r i t y L a b ( 1 2 7 5 1 ) C I 1 82: Mrs. K. Sneha",
+                    "lab_code": null,
+                    "faculty_raw": "Reddy/Mr. B. Vamshi"
+                },
+                {
+                    "raw_text": "S Patil Data (12753) Science s R Lab Dr. T. Rajesh",
+                    "lab_code": "12753",
+                    "faculty_raw": "/ Mr. M. Kiran"
+                },
+                {
+                    "raw_text": "Project (12763) work (Phase - I) : Dr. T. Rajesh",
+                    "lab_code": "12763",
+                    "faculty_raw": "/ Mrs. G. Sailaja"
+                },
+                {
+                    "raw_text": "Coordinator HOD PRINCPAL",
+                    "lab_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Coordinator/PRINCIPAL/OCNotice Board",
+                    "lab_code": null,
+                    "faculty_raw": null
+                }
+            ]
+        }
+    },
+    {
+        "branch": "CSE-B",
+        "academic_year": "2026-2027",
+        "effective_date": "06-07-2026",
+        "rooms": {
+            "header_rooms": [
+                "S4"
+            ],
+            "resolved_rooms": [],
+            "unresolved_rooms": [
+                "S4"
+            ],
+            "inline_room_hints": []
+        },
+        "requires_review": true,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "10:00"
+            },
+            {
+                "start_time": "11:10",
+                "end_time": "12:10"
+            },
+            {
+                "start_time": "01:00",
+                "end_time": "02:00"
+            },
+            {
+                "start_time": "02:00",
+                "end_time": "03:00"
+            },
+            {
+                "start_time": "03:00",
+                "end_time": "04:00"
+            }
+        ],
+        "entries": [
+            {
+                "day": "MON",
+                "period": 2,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "MON",
+                "period": 3,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "Lab"
+            },
+            {
+                "day": "MON",
+                "period": 5,
+                "start_time": "03:00",
+                "end_time": "04:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "TUE",
+                "period": 2,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "TUE",
+                "period": 4,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "TUE",
+                "period": 5,
+                "start_time": "03:00",
+                "end_time": "04:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "WED",
+                "period": 2,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "WED",
+                "period": 4,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "WED",
+                "period": 5,
+                "start_time": "03:00",
+                "end_time": "04:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "THU",
+                "period": 2,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "THU",
+                "period": 4,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "THU",
+                "period": 5,
+                "start_time": "03:00",
+                "end_time": "04:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "FRI",
+                "period": 2,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "FM"
+            },
+            {
+                "day": "FRI",
+                "period": 4,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "FRI",
+                "period": 5,
+                "start_time": "03:00",
+                "end_time": "04:00",
+                "subject_code": "BSPC"
+            }
+        ],
+        "legend": {
+            "courses": [
+                {
+                    "raw_text": "(127FN)",
+                    "course_code": "127FN",
+                    "faculty_raw": "Dr. Hema"
+                },
+                {
+                    "raw_text": "Cryptography (127DS) and Network Security :",
+                    "course_code": "127DS",
+                    "faculty_raw": "Mrs. K."
+                },
+                {
+                    "raw_text": "Professional Elective-4",
+                    "course_code": null,
+                    "faculty_raw": "Dr. D.V."
+                },
+                {
+                    "raw_text": "Data Science usingR(127EY)",
+                    "course_code": "127EY",
+                    "faculty_raw": "Parameswari"
+                },
+                {
+                    "raw_text": "Professional Elective-5",
+                    "course_code": null,
+                    "faculty_raw": "Mrs. V."
+                },
+                {
+                    "raw_text": "Big Data Analytics(127BX )",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Open Elective-2",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Behavioral Skills and Professional :",
+                    "course_code": null,
+                    "faculty_raw": "Mrs. V."
+                },
+                {
+                    "raw_text": "Communication (127KS)",
+                    "course_code": "127KS",
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Class Teacher: Mrs. K. Sneha Reddy",
+                    "course_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Dept.T imetable Coordinator",
+                    "course_code": null,
+                    "faculty_raw": "Timetable"
+                },
+                {
+                    "raw_text": "Copy to: Individual Staff/HOD/Central Time",
+                    "course_code": null,
+                    "faculty_raw": "table Coordinator/PRINCIPAL/OCINotice"
+                }
+            ],
+            "labs": [
+                {
+                    "raw_text": "Neelam Security Lab (12751) CL 18 Mrs. V. Subha",
+                    "lab_code": "12751",
+                    "faculty_raw": "Lakshmi"
+                },
+                {
+                    "raw_text": "Sneha Reddy Data (12753) Science CL using 12 R Lab Dr. Mr. M. D.V.L Kiran alita",
+                    "lab_code": "12753",
+                    "faculty_raw": "Parameswari /"
+                },
+                {
+                    "raw_text": "Lalita Project work (Phase - I) Mrs. K. Sneha",
+                    "lab_code": null,
+                    "faculty_raw": "Reddy /"
+                },
+                {
+                    "raw_text": "(12763) Mrs. V. Subha",
+                    "lab_code": "12763",
+                    "faculty_raw": "Lakshmi"
+                },
+                {
+                    "raw_text": "Subha Lakshmi",
+                    "lab_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Jahnavi",
+                    "lab_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Coordinator HOD PRINCIPAL",
+                    "lab_code": null,
+                    "faculty_raw": null
+                },
+                {
+                    "raw_text": "Board",
+                    "lab_code": null,
+                    "faculty_raw": null
+                }
+            ]
+        }
+    },
+    {
+        "branch": "CSE-C",
+        "academic_year": "2026-2027",
+        "effective_date": "06-07-2026",
+        "rooms": {
+            "header_rooms": [
+                "LH-1",
+                "S4",
+                "S7"
+            ],
+            "resolved_rooms": [
+                {
+                    "source": "LH-1",
+                    "physical_room": "C-201"
+                }
+            ],
+            "unresolved_rooms": [
+                "S4",
+                "S7"
+            ],
+            "inline_room_hints": []
+        },
+        "requires_review": true,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "10:00"
+            },
+            {
+                "start_time": "10:00",
+                "end_time": "11:00"
+            },
+            {
+                "start_time": "11:10",
+                "end_time": "12:10"
+            },
+            {
+                "start_time": "01:00",
+                "end_time": "02:00"
+            },
+            {
+                "start_time": "02:00",
+                "end_time": "03:00"
+            },
+            {
+                "start_time": "03:00",
+                "end_time": "04:00"
+            }
+        ],
+        "entries": [
+            {
+                "day": "MON",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "MON",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "MON",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "WED",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "WED",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "WED",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "THU",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "THU",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "THU",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BDA"
+            },
+            {
+                "day": "FRI",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "FRI",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "FRI",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BSPC"
+            }
+        ],
+        "legend": {
+            "courses": [],
+            "labs": []
+        }
+    },
+    {
+        "branch": "CSE-D",
+        "academic_year": "2026-2027",
+        "effective_date": "06-07-2026",
+        "rooms": {
+            "header_rooms": [
+                "LH-4",
+                "D-403"
+            ],
+            "resolved_rooms": [
+                {
+                    "source": "LH-4",
+                    "physical_room": "C-301"
+                },
+                {
+                    "source": "D-403",
+                    "physical_room": "D-403"
+                }
+            ],
+            "unresolved_rooms": [],
+            "inline_room_hints": []
+        },
+        "requires_review": false,
+        "time_slots": [
+            {
+                "start_time": "09:00",
+                "end_time": "10:00"
+            },
+            {
+                "start_time": "10:00",
+                "end_time": "11:00"
+            },
+            {
+                "start_time": "11:10",
+                "end_time": "12:10"
+            },
+            {
+                "start_time": "01:00",
+                "end_time": "02:00"
+            },
+            {
+                "start_time": "02:00",
+                "end_time": "03:00"
+            },
+            {
+                "start_time": "03:00",
+                "end_time": "04:00"
+            }
+        ],
+        "entries": [
+            {
+                "day": "MON",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "MON",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "TUE",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "FM"
+            },
+            {
+                "day": "TUE",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "WED",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "WED",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "WED",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "THU",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "BSPC"
+            },
+            {
+                "day": "THU",
+                "period": 4,
+                "start_time": "01:00",
+                "end_time": "02:00",
+                "subject_code": "CNS"
+            },
+            {
+                "day": "THU",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "DSUR"
+            },
+            {
+                "day": "FRI",
+                "period": 2,
+                "start_time": "10:00",
+                "end_time": "11:00",
+                "subject_code": "DSUR-"
+            },
+            {
+                "day": "FRI",
+                "period": 3,
+                "start_time": "11:10",
+                "end_time": "12:10",
+                "subject_code": "Lab"
+            },
+            {
+                "day": "FRI",
+                "period": 5,
+                "start_time": "02:00",
+                "end_time": "03:00",
+                "subject_code": "CNS"
+            }
+        ],
+        "legend": {
+            "courses": [],
+            "labs": []
+        }
+    }
+]
