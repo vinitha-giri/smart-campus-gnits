@@ -17,6 +17,7 @@ class OverviewScreen extends StatefulWidget {
 class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? data;
   bool loading = true;
+  bool _summaryRequestRunning = false;
   Timer? timer;
   late final AnimationController pulse = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
 
@@ -30,16 +31,20 @@ class _OverviewScreenState extends State<OverviewScreen> with SingleTickerProvid
   @override
   void dispose() { timer?.cancel(); pulse.dispose(); super.dispose(); }
 
-  Future<void> load({bool silent = false}) async {
-    if (!silent && mounted) setState(() => loading = true);
-    try {
+ Future<void> load({bool silent = false}) async {
+  if (_summaryRequestRunning) return;
+
+  _summaryRequestRunning = true;
+
+  try {
       final r = await http.get(Uri.parse('${ApiConfig.baseUrl}/api/reports/summary'));
       if (r.statusCode == 200 && mounted) setState(() => data = jsonDecode(r.body));
     } catch (_) {}
-    finally {
-      if (mounted && !silent) setState(() => loading = false);
-    }
+       finally {
+    _summaryRequestRunning = false;
   }
+}
+    
 
   @override
   Widget build(BuildContext context) {
