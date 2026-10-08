@@ -1,0 +1,100 @@
+GNITS SMART CAMPUS — PRODUCTION EMAIL SETUP
+=============================================
+
+This upgrade keeps the existing BCrypt login + MySQL users and adds:
+- GNITS college-email verification for new self-registrations
+- secure one-time password-reset links
+- booking request emails
+- approval/rejection emails
+- pending-approval reminder emails
+- existing Firebase FCM push notifications remain enabled
+
+REQUIRED BACKEND ENVIRONMENT VARIABLES
+--------------------------------------
+BREVO_API_KEY=your_server_side_brevo_api_key
+MAIL_FROM_EMAIL=verified-sender@your-verified-domain
+MAIL_FROM_NAME=GNITS Smart Campus
+APP_BASE_URL=https://gnits-smart-campus-api.onrender.com
+
+The MAIL_FROM_EMAIL/domain must be verified in the transactional email provider.
+Do NOT put BREVO_API_KEY in Flutter, GitHub, the APK, or any frontend file.
+
+EXISTING FIREBASE PUSH VARIABLE
+--------------------------------
+FIREBASE_SERVICE_ACCOUNT_JSON_B64=existing_base64_service_account_json
+
+LOCAL TESTING
+-------------
+Set the same variables in the environment before:
+  mvn spring-boot:run
+
+If BREVO_API_KEY is not configured, the application still starts and existing
+booking/push/in-app functionality continues. Email delivery is skipped with a
+server log warning. For real production use, configure all email variables.
+
+NEW ACCOUNT FLOW
+----------------
+1. User signs up with @gnits.ac.in.
+2. Backend creates the account as emailVerified=false.
+3. Backend sends a one-time verification link.
+4. User opens the link.
+5. Backend marks the email verified.
+6. User can log in.
+
+EXISTING ACCOUNTS
+-----------------
+Existing rows are intentionally compatible: a NULL email_verified value is
+treated as legacy/verified, so deploying this upgrade does not lock existing
+1000+ users out.
+
+ADMIN-CREATED ACCOUNTS
+----------------------
+Accounts created by an authenticated administrator are marked verified because
+the administrator is explicitly provisioning the account.
+
+PASSWORD RESET
+--------------
+The old email+name password-reset mechanism is replaced by a secure one-time
+email link. The link expires after 30 minutes and is invalidated after use.
+
+BOOKING EMAILS
+--------------
+Faculty request:
+- Faculty receives request-submitted email.
+- All configured Head Staff in the department receive approval-required email.
+- Existing in-app notification + FCM continue.
+
+Approval:
+- Faculty receives approval email + existing FCM/in-app notification.
+
+Rejection:
+- Faculty receives rejection email including the Head Staff reason + existing
+  FCM/in-app notification.
+
+Reminder:
+- Existing 30-minute pending reminder continues.
+- Head Staff receives both email and push/in-app reminder.
+
+Admin direct booking:
+- The booking owner receives a confirmation email.
+
+DATABASE
+--------
+Hibernate ddl-auto=update will add:
+- users.email_verified
+- email_tokens table
+
+No existing booking/timetable/room table is replaced.
+
+PRODUCTION CHECKLIST
+--------------------
+[ ] Verify sender/domain in transactional email provider
+[ ] Set all variables above in Render Environment Variables
+[ ] Redeploy backend
+[ ] Test one new GNITS account with a real college mailbox
+[ ] Verify the link and then log in
+[ ] Test password reset
+[ ] Test faculty booking -> Head Staff approval email
+[ ] Test approval -> faculty email + push
+[ ] Test rejection -> faculty email + push
+[ ] Confirm FIREBASE_SERVICE_ACCOUNT_JSON_B64 remains configured
