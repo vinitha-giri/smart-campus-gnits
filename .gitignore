@@ -1,31 +1,27 @@
-# Secrets / environment files
+﻿# Secrets and environment configuration
 .env
 .env.*
 !.env.example
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/*service-account*.json
+**/*firebase-adminsdk*.json
 
-# Java / Spring Boot
-**/target/
-**/.idea/
-**/*.iml
-
-# Flutter / Dart
+# Flutter/Dart generated files
 **/.dart_tool/
-**/build/
-**/.flutter-plugins
-**/.flutter-plugins-dependencies
 **/.packages
+**/build/
+**/coverage/
+**/android/.gradle/
+**/ios/Flutter/Generated.xcconfig
 
-# IDE / OS
+# Java/Spring generated files
+**/target/
+**/*.log
+
+# IDE and OS files
 .vscode/
 .idea/
-*.log
 .DS_Store
 Thumbs.db
-
-# Local database dumps
-*.sql
-*.sql.gz
-
-# Temporary files
-*.tmp
-*.temp
