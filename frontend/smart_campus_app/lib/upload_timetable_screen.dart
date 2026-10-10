@@ -114,18 +114,25 @@ class _UploadTimetableScreenState extends State<UploadTimetableScreen> {
     }
   }
 
-  Future<void> pick() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx'],
-      withData: true,
-    );
-    if (result == null || result.files.single.bytes == null) return;
-    setState(() {
-      bytes = result.files.single.bytes!;
-      name = result.files.single.name;
-    });
-  }
+ 
+  
+Future<void> pick() async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['xlsx'],
+    withData: true,
+  );
+
+  if (result == null || result.files.isEmpty) return;
+
+  final file = result.files.single;
+  if (file.bytes == null) return;
+
+  setState(() {
+    bytes = file.bytes!;
+    name = file.name;
+  });
+}
 
   Future<void> upload() async {
     if (bytes == null) return;
