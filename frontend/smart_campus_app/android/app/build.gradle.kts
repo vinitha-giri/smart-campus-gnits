@@ -1,4 +1,4 @@
-```kotlin
+
 plugins {
     id("com.android.application")
 
@@ -9,12 +9,12 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-```
+
 
 
 android {
     namespace = "com.example.smart_campus_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
