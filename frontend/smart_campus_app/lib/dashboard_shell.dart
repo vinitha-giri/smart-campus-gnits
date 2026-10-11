@@ -231,19 +231,21 @@ Future<void> _openFeedback() async {
     return;
   }
 
-  final uri = Uri(
-    scheme: 'mailto',
-    path: 'girivinitha3098@gmail.com',
-    queryParameters: {
-      'subject': 'Smart Campus Feedback',
-      'body':
-          'Hello Vinitha,\n\n'
-          'My feedback about GNITS Smart Campus:\n\n'
-          '${feedback.trim()}\n\n'
-          'Role: ${widget.role}\n'
-          'Account: ${widget.username}\n',
-    },
-  );
+  
+
+
+final body =
+    'Hello Vinitha,\n\n'
+    'My feedback about GNITS Smart Campus:\n\n'
+    '${feedback.trim()}\n\n'
+    'Role: ${widget.role}\n'
+    'Account: ${widget.username}\n';
+
+final uri = Uri.parse(
+  'mailto:girivinitha3098@gmail.com'
+  '?subject=Smart%20Campus%20Feedback'
+  '&body=${Uri.encodeComponent(body)}',
+);
 
   try {
     final launched = await launchUrl(
