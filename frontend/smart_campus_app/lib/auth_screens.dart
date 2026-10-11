@@ -825,14 +825,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     // Render Free may need time to wake after inactivity. Keep the login screen
     // waiting and retry transient connection/gateway failures instead of asking
     // users to press Login repeatedly. Login requests are retried sequentially.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Connecting to Smart Campus. If the server is waking up, we will retry automatically.'),
-        duration: Duration(seconds: 5),
-      ),
-    );
+
     try {
-      final response = await _postLoginWithRetry(u, p);
+      final response = await http.post(
+  Uri.parse('${ApiConfig.baseUrl}/api/auth/login'),
+  headers: {'Content-Type': 'application/json'},
+  body: jsonEncode({'email': u, 'password': p, 'role': role}),
+).timeout(const Duration(seconds: 12));
 
       Map<String, dynamic> data = {};
       try {
@@ -873,31 +872,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
-  Future<http.Response> _postLoginWithRetry(String email, String password) async {
-    Object? lastError;
-    for (var attempt = 1; attempt <= 3; attempt++) {
-      try {
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/api/auth/login'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'email': email, 'password': password, 'role': role}),
-        ).timeout(const Duration(seconds: 45));
 
-        // Retry only temporary gateway/service errors. Do not retry incorrect
-        // credentials, unverified accounts, or business-rule responses.
-        if ([502, 503, 504].contains(response.statusCode) && attempt < 3) {
-          await Future<void>.delayed(const Duration(seconds: 2));
-          continue;
-        }
-        return response;
-      } catch (error) {
-        lastError = error;
-        if (attempt >= 3) rethrow;
-        await Future<void>.delayed(const Duration(seconds: 2));
-      }
-    }
-    throw Exception('Login request failed after retries: $lastError');
-  }
 
   void openSignup() {
     Navigator.push(
