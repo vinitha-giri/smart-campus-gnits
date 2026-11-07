@@ -16,8 +16,28 @@ MAIL_FROM_EMAIL=verified-sender@your-verified-domain
 MAIL_FROM_NAME=GNITS Smart Campus
 APP_BASE_URL=https://gnits-smart-campus-api.onrender.com
 
-The MAIL_FROM_EMAIL/domain must be verified in the transactional email provider.
-Do NOT put BREVO_API_KEY in Flutter, GitHub, the APK, or any frontend file.
+IMPORTANT — SENDER VERIFICATION
+--------------------------------
+MAIL_FROM_EMAIL must be an exact sender address that is verified/authorized
+inside your Brevo account (Brevo -> Settings -> Senders, Domains & Dedicated IPs).
+If you use a Gmail address as the sender, add and verify that exact Gmail sender
+in Brevo first. A Gmail address entered only in Render is NOT automatically an
+authorized sender. Prefer a sender on a domain you control and authenticate that
+domain in Brevo for production delivery.
+
+In Render -> your backend service -> Environment, set all four variables above.
+Use the actual Brevo SMTP/API key (not your Gmail password or an SMTP password),
+remove placeholder values, and set APP_BASE_URL to exactly:
+https://gnits-smart-campus-api.onrender.com
+Do NOT add a trailing path such as /api, and do NOT put BREVO_API_KEY in Flutter,
+GitHub, the APK, or any frontend file.
+
+The signup response now includes emailSent. It is true only when Brevo returns a
+successful HTTP response accepting the verification email. If false, the account
+is still safely pending verification; the app tells the user to use Resend
+verification and the backend logs the provider's HTTP error for diagnosis. A
+provider acceptance is not a guarantee that Gmail placed the message in Inbox;
+check Spam/Promotions and the Brevo transactional email logs as well.
 
 EXISTING FIREBASE PUSH VARIABLE
 --------------------------------

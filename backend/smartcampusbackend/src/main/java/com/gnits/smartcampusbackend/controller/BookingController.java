@@ -76,6 +76,7 @@ public class BookingController {
                 }
             }
             List<Map<String,Object>> out = new ArrayList<>();
+            List<Map<String,Object>> unavailable = new ArrayList<>();
             for (Room room : allRooms) {
                 if ("MAINTENANCE".equalsIgnoreCase(room.getStatus()) || "RESERVED".equalsIgnoreCase(room.getStatus())) continue;
                 Integer roomCapacity = room.getCapacity();
@@ -86,19 +87,31 @@ public class BookingController {
                         .filter(e -> dayMatches(e.getDayOfWeek(), day))
                         .toList();
                 boolean timetableConflict = tt.stream().anyMatch(e -> e.getStartTime() != null && e.getEndTime() != null && start.isBefore(e.getEndTime()) && end.isAfter(e.getStartTime()));
-                boolean bookingConflict = bookingsByRoom.getOrDefault(room.getRoomId(), List.of()).stream()
-                        .anyMatch(b -> b.getStartTime() != null && b.getEndTime() != null && start.isBefore(b.getEndTime()) && end.isAfter(b.getStartTime()));
+                List<Booking> overlapping = bookingsByRoom.getOrDefault(room.getRoomId(), List.of()).stream()
+                        .filter(b -> b.getStartTime() != null && b.getEndTime() != null && start.isBefore(b.getEndTime()) && end.isAfter(b.getStartTime()))
+                        .toList();
+                boolean bookingConflict = !overlapping.isEmpty();
                 if (!timetableConflict && !bookingConflict) {
                     Map<String,Object> item = new LinkedHashMap<>();
-                    item.put("roomId", room.getRoomId());
-                    item.put("roomNo", room.getRoomNo());
-                    item.put("roomType", String.valueOf(room.getRoomType()));
-                    item.put("capacity", roomCapacity);
-                    item.put("status", "AVAILABLE");
-                    out.add(item);
+                    item.put("roomId", room.getRoomId()); item.put("roomNo", room.getRoomNo());
+                    item.put("roomType", String.valueOf(room.getRoomType())); item.put("capacity", roomCapacity);
+                    item.put("status", "AVAILABLE"); out.add(item);
+                } else if (bookingConflict) {
+                    for (Booking b : overlapping) {
+                        Map<String,Object> item = new LinkedHashMap<>();
+                        item.put("roomId", room.getRoomId()); item.put("roomNo", room.getRoomNo());
+                        item.put("roomType", String.valueOf(room.getRoomType())); item.put("capacity", roomCapacity);
+                        item.put("bookingId", b.getBookingId()); item.put("bookingDate", b.getBookingDate().toString());
+                        item.put("startTime", b.getStartTime().toString()); item.put("endTime", b.getEndTime().toString());
+                        item.put("status", b.getStatus()); item.put("purpose", b.getPurpose()); item.put("bookedBy", b.getBookedBy());
+                        User owner = userRepository.findByEmail(b.getBookedBy()).orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
+                        item.put("bookedByName", owner == null ? b.getBookedBy() : owner.getName());
+                        item.put("department", owner == null ? Objects.toString(b.getApprovalDepartment(), "") : Objects.toString(owner.getDepartment(), ""));
+                        unavailable.add(item);
+                    }
                 }
             }
-            return ResponseEntity.ok(Map.of("success",true,"date",date,"startTime",startTime,"endTime",endTime,"rooms",out));
+            return ResponseEntity.ok(Map.of("success",true,"date",date,"startTime",startTime,"endTime",endTime,"rooms",out,"unavailableRooms",unavailable));
         } catch (Exception e) { return ResponseEntity.badRequest().body(Map.of("success",false,"error","Invalid booking date/time.")); }
     }
 
@@ -129,7 +142,7 @@ public class BookingController {
             return ResponseEntity.ok(all);
         }
         if ("FACULTY".equalsIgnoreCase(role)) return ResponseEntity.ok(bookingRepository.findByBookedByIgnoreCaseOrderByBookingDateDescStartTimeDesc(username));
-        if ("HEAD_STAFF".equalsIgnoreCase(role)) return ResponseEntity.ok(bookingRepository.findByStatusIgnoreCaseOrderByBookingDateAscStartTimeAsc("PENDING_APPROVAL"));
+        if ("HEAD_STAFF".equalsIgnoreCase(role)) return ResponseEntity.ok(bookingRepository.findByBookedByIgnoreCaseOrderByBookingDateDescStartTimeDesc(username));
         if ("STUDENT".equalsIgnoreCase(role)) return ResponseEntity.ok(List.of());
         return ResponseEntity.status(403).body(Map.of("success",false,"error","Unsupported role."));
     }
@@ -138,7 +151,7 @@ public class BookingController {
     @Transactional
     public ResponseEntity<?> create(@RequestBody Map<String,Object> body) {
         String role = Objects.toString(body.get("role"), "").toUpperCase(Locale.ROOT);
-        if (!Set.of("ADMIN","FACULTY").contains(role)) return ResponseEntity.status(403).body(Map.of("success",false,"error","Booking authority is limited to Admin and Faculty."));
+        if (!Set.of("ADMIN","FACULTY","HEAD_STAFF").contains(role)) return ResponseEntity.status(403).body(Map.of("success",false,"error","Booking authority is limited to Admin, Faculty and Head Staff."));
         try {
             Integer roomId = Integer.valueOf(Objects.toString(body.get("roomId")));
             Room room = roomRepository.findById(roomId).orElseThrow(() -> new IllegalArgumentException("Room not found."));
@@ -164,41 +177,53 @@ public class BookingController {
 
             // Faculty bookings must have a valid department Head Staff before a booking row is created.
             // Never create a REJECTED booking merely because the department setup is incomplete.
-            if ("FACULTY".equalsIgnoreCase(role)) {
-                String department = normalizeDepartment(faculty.getDepartment());
-                if (department.isBlank()) {
-                    return ResponseEntity.status(409).body(Map.of(
-                            "success", false,
-                            "error", "Your department is not configured for booking approval. Please contact Admin to update your department."));
+            if ("FACULTY".equalsIgnoreCase(role) || "HEAD_STAFF".equalsIgnoreCase(role)) {
+                if (!role.equalsIgnoreCase(faculty.getRole())) {
+                    return ResponseEntity.status(403).body(Map.of("success",false,"error","The selected role does not match this account."));
                 }
-                List<User> heads = userRepository.findByRoleIgnoreCase("HEAD_STAFF").stream()
-                        .filter(h -> normalizeDepartment(h.getDepartment()).equals(department))
+                // Approval authority follows the room's owning block, never the requester's home department.
+                String approvalDepartment = roomApprovalDepartment(room.getRoomNo());
+                if (approvalDepartment.isBlank()) {
+                    return ResponseEntity.status(409).body(Map.of("success",false,"error","The classroom block could not be identified from its room number. Please contact Admin."));
+                }
+                List<User> approvers = userRepository.findByRoleIgnoreCase("HEAD_STAFF").stream()
+                        .filter(h -> approvalDepartment.equals(normalizeDepartment(h.getDepartment())))
                         .toList();
-                if (heads.isEmpty()) {
-                    return ResponseEntity.status(409).body(Map.of(
-                            "success", false,
-                            "error", "No Head Staff is configured for your department yet. Please contact Admin to assign a Head Staff before booking."));
+                boolean headSelfApproval = "HEAD_STAFF".equalsIgnoreCase(role)
+                        && approvalDepartment.equals(normalizeDepartment(faculty.getDepartment()));
+                if (!headSelfApproval && approvers.isEmpty()) {
+                    return ResponseEntity.status(409).body(Map.of("success",false,"error","No Head Staff account is configured for the owning block (" + approvalDepartment + "). Please contact Admin."));
                 }
 
                 Booking b = new Booking();
                 b.setRoomId(roomId); b.setRoomNo(room.getRoomNo()); b.setBookingDate(date); b.setStartTime(start); b.setEndTime(end);
-                b.setPurpose(purpose); b.setBookedBy(username); b.setBookedByRole(role); b.setStatus("PENDING_APPROVAL"); b.setApprovalDepartment(department);
-                Booking saved = bookingRepository.save(b);
+                b.setPurpose(purpose); b.setBookedBy(username); b.setBookedByRole(role); b.setApprovalDepartment(approvalDepartment);
+                if (headSelfApproval) {
+                    b.setStatus("CONFIRMED");
+                    b.setApprovedBy(faculty.getEmail() == null ? faculty.getUsername() : faculty.getEmail());
+                    b.setApprovedAt(LocalDateTime.now());
+                    Booking saved = bookingRepository.save(b);
+                    String recipient = faculty.getEmail() == null ? faculty.getUsername() : faculty.getEmail();
+                    Notification n = new Notification(); n.setRecipientEmail(recipient); n.setType("BOOKING_APPROVED");
+                    n.setTitle("Booking self-approved"); n.setMessage("Your booking for " + room.getRoomNo() + " on " + date + " from " + start + " to " + end + " was approved by you as the owning block's Head Staff.");
+                    n.setBookingId(saved.getBookingId()); notificationRepository.save(n);
+                    realtimeHub.publish("BOOKING_CHANGED", n.getMessage(), Map.of("bookingId",saved.getBookingId(),"roomId",roomId,"roomNo",room.getRoomNo(),"status","CONFIRMED"));
+                    emailService.sendBookingDecision(recipient, faculty.getName(), true, room.getRoomNo(), date.toString(), start.toString(), end.toString(), "");
+                    return ResponseEntity.ok(Map.of("success",true,"message","Booking approved by you as the Head Staff responsible for this block.","status","CONFIRMED","booking",saved));
+                }
 
-                String message = faculty.getName() + " requested " + room.getRoomNo() + " on " + date + " from " + start + " to " + end + ".";
-                // Notify every configured Head Staff in the department. The first one to approve/reject completes the request.
-                for (User head : heads) {
+                b.setStatus("PENDING_APPROVAL");
+                Booking saved = bookingRepository.save(b);
+                String message = faculty.getName() + " requested " + room.getRoomNo() + " (" + approvalDepartment + ") on " + date + " from " + start + " to " + end + ".";
+                for (User head : approvers) {
                     String recipient = head.getEmail() == null || head.getEmail().isBlank() ? head.getUsername() : head.getEmail();
-                    Notification n = new Notification();
-                    n.setRecipientEmail(recipient); n.setType("BOOKING_APPROVAL_REQUEST"); n.setTitle("New classroom booking request");
+                    Notification n = new Notification(); n.setRecipientEmail(recipient); n.setType("BOOKING_APPROVAL_REQUEST"); n.setTitle("New classroom booking request");
                     n.setMessage(message); n.setBookingId(saved.getBookingId()); notificationRepository.save(n);
                     realtimeHub.publish("BOOKING_APPROVAL_REQUEST", message, Map.of("bookingId", saved.getBookingId(), "recipient", recipient, "status", "PENDING_APPROVAL"));
-                    emailService.sendBookingRequest(recipient, head.getName(), faculty.getName(), room.getRoomNo(),
-                            date.toString(), start.toString(), end.toString());
+                    emailService.sendBookingRequest(recipient, head.getName(), faculty.getName(), room.getRoomNo(), date.toString(), start.toString(), end.toString());
                 }
-                emailService.sendBookingSubmitted(faculty.getEmail() == null ? faculty.getUsername() : faculty.getEmail(),
-                        faculty.getName(), room.getRoomNo(), date.toString(), start.toString(), end.toString());
-                return ResponseEntity.ok(Map.of("success",true,"message","Booking request sent to the concerned Head Staff for approval.","status","PENDING_APPROVAL","booking",saved));
+                emailService.sendBookingSubmitted(faculty.getEmail() == null ? faculty.getUsername() : faculty.getEmail(), faculty.getName(), room.getRoomNo(), date.toString(), start.toString(), end.toString());
+                return ResponseEntity.ok(Map.of("success",true,"message","Booking request sent to the Head Staff responsible for " + approvalDepartment + ".","status","PENDING_APPROVAL","booking",saved));
             }
 
             Booking b = new Booking();
@@ -216,19 +241,21 @@ public class BookingController {
     @GetMapping("/pending-approvals")
     public ResponseEntity<?> pendingApprovals(@RequestParam String email) {
         User head = userRepository.findByEmail(email).orElseGet(() -> userRepository.findByUsername(email).orElse(null));
-        if (head == null || !"HEAD_STAFF".equalsIgnoreCase(head.getRole())) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff account required."));
+        if (head == null || !Set.of("HEAD_STAFF","ADMIN").contains(Objects.toString(head.getRole(),"").toUpperCase(Locale.ROOT))) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff or Admin account required."));
+        List<Booking> pending = bookingRepository.findByStatusIgnoreCaseOrderByBookingDateAscStartTimeAsc("PENDING_APPROVAL");
+        if ("ADMIN".equalsIgnoreCase(head.getRole())) {
+            return ResponseEntity.ok(Map.of("success", true, "department", "ALL", "count", pending.size(), "bookings", pending));
+        }
         String headDepartment = normalizeDepartment(head.getDepartment());
         if (headDepartment.isBlank()) {
             return ResponseEntity.status(409).body(Map.of(
                     "success", false,
                     "error", "Your Head Staff account has no department assigned. Please contact Admin to assign your department."));
         }
-        List<Booking> pending = bookingRepository.findByStatusIgnoreCaseOrderByBookingDateAscStartTimeAsc("PENDING_APPROVAL");
         List<Booking> mine = pending.stream().filter(b -> {
-            String approvalDept = normalizeDepartment(b.getApprovalDepartment());
-            if (!approvalDept.isBlank()) return approvalDept.equals(headDepartment);
-            User f=userRepository.findByEmail(b.getBookedBy()).orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
-            return f != null && normalizeDepartment(f.getDepartment()).equals(headDepartment);
+            String approvalDept = roomApprovalDepartment(b.getRoomNo());
+            if (approvalDept.isBlank()) approvalDept = normalizeDepartment(b.getApprovalDepartment());
+            return approvalDept.equals(headDepartment);
         }).toList();
         return ResponseEntity.ok(Map.of("success", true, "department", headDepartment, "count", mine.size(), "bookings", mine));
     }
@@ -237,10 +264,13 @@ public class BookingController {
     public ResponseEntity<?> approve(@PathVariable Integer id, @RequestParam String email) {
         User head = userRepository.findByEmail(email).orElseGet(() -> userRepository.findByUsername(email).orElse(null));
         Booking b = bookingRepository.findById(id).orElse(null);
-        if (head == null || !"HEAD_STAFF".equalsIgnoreCase(head.getRole())) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff account required."));
+        if (head == null || !Set.of("HEAD_STAFF","ADMIN").contains(Objects.toString(head.getRole(),"").toUpperCase(Locale.ROOT))) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff or Admin account required."));
         if (b == null) return ResponseEntity.notFound().build();
         User faculty=userRepository.findByEmail(b.getBookedBy()).orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
-        if (faculty==null || !normalizeDepartment(faculty.getDepartment()).equals(normalizeDepartment(head.getDepartment()))) return ResponseEntity.status(403).body(Map.of("success",false,"error","This booking belongs to another department."));
+        if (faculty==null) return ResponseEntity.status(404).body(Map.of("success",false,"error","Booking owner account was not found."));
+        if ("HEAD_STAFF".equalsIgnoreCase(head.getRole())
+                && !roomApprovalDepartment(b.getRoomNo()).equals(normalizeDepartment(head.getDepartment())))
+            return ResponseEntity.status(403).body(Map.of("success",false,"error","Only the Head Staff responsible for this classroom's block can approve it."));
         if (!"PENDING_APPROVAL".equalsIgnoreCase(b.getStatus())) return ResponseEntity.status(409).body(Map.of("success",false,"error","This booking is no longer pending."));
         if (bookingRepository.hasOverlapExcept(b.getBookingDate(), b.getRoomId(), b.getStartTime(), b.getEndTime(), b.getBookingId())) return ResponseEntity.status(409).body(Map.of("success",false,"error","The room is no longer available for this time."));
         b.setStatus("CONFIRMED"); b.setApprovedBy(head.getEmail()==null?head.getUsername():head.getEmail()); b.setApprovedAt(LocalDateTime.now()); b.setRejectionReason(null); bookingRepository.save(b);
@@ -256,10 +286,13 @@ public class BookingController {
     public ResponseEntity<?> reject(@PathVariable Integer id, @RequestParam String email, @RequestParam(required=false, defaultValue="") String reason) {
         User head = userRepository.findByEmail(email).orElseGet(() -> userRepository.findByUsername(email).orElse(null));
         Booking b=bookingRepository.findById(id).orElse(null);
-        if(head==null || !"HEAD_STAFF".equalsIgnoreCase(head.getRole())) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff account required."));
+        if(head==null || !Set.of("HEAD_STAFF","ADMIN").contains(Objects.toString(head.getRole(),"").toUpperCase(Locale.ROOT))) return ResponseEntity.status(403).body(Map.of("success",false,"error","Head Staff or Admin account required."));
         if(b==null) return ResponseEntity.notFound().build();
         User faculty=userRepository.findByEmail(b.getBookedBy()).orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
-        if(faculty==null || !normalizeDepartment(faculty.getDepartment()).equals(normalizeDepartment(head.getDepartment()))) return ResponseEntity.status(403).body(Map.of("success",false,"error","This booking belongs to another department."));
+        if(faculty==null) return ResponseEntity.status(404).body(Map.of("success",false,"error","Booking owner account was not found."));
+        if ("HEAD_STAFF".equalsIgnoreCase(head.getRole())
+                && !roomApprovalDepartment(b.getRoomNo()).equals(normalizeDepartment(head.getDepartment())))
+            return ResponseEntity.status(403).body(Map.of("success",false,"error","Only the Head Staff responsible for this classroom's block can reject it."));
         if(!"PENDING_APPROVAL".equalsIgnoreCase(b.getStatus())) return ResponseEntity.status(409).body(Map.of("success",false,"error","This booking is no longer pending."));
         String why=reason==null?"":reason.trim(); b.setStatus("REJECTED"); b.setRejectionReason(why.isBlank()?"Rejected by Head Staff.":why); b.setApprovedBy(head.getEmail()==null?head.getUsername():head.getEmail()); b.setApprovedAt(LocalDateTime.now()); bookingRepository.save(b);
         Notification n=new Notification(); n.setRecipientEmail(b.getBookedBy()); n.setType("BOOKING_REJECTED"); n.setTitle("Booking rejected"); n.setMessage("Your booking for " + b.getRoomNo() + " on " + b.getBookingDate() + " was rejected. " + b.getRejectionReason()); n.setBookingId(b.getBookingId()); notificationRepository.save(n);
@@ -274,13 +307,30 @@ public class BookingController {
         if (value == null) return "";
         String v = value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
         return switch (v) {
-            case "COMPUTERSCIENCEANDENGINEERING", "COMPUTERSCIENCEENGINEERING", "CSE" -> "CSE";
-            case "ELECTRONICSANDCOMMUNICATIONENGINEERING", "ELECTRONICSCOMMUNICATIONENGINEERING", "ECE" -> "ECE";
-            case "ELECTRICALANDELECTRONICSENGINEERING", "ELECTRICALENGINEERING", "EEE" -> "EEE";
-            case "INFORMATIONTECHNOLOGY", "IT" -> "IT";
+            case "C", "CBLOCK", "COMPUTERSCIENCEANDENGINEERING", "COMPUTERSCIENCEENGINEERING", "CSE", "CSEBLOCK" -> "CSE";
+            case "D", "DBLOCK", "ELECTRONICSANDCOMMUNICATIONENGINEERING", "ELECTRONICSCOMMUNICATIONENGINEERING", "ECE", "ECEBLOCK" -> "ECE";
+            case "B", "BBLOCK", "ELECTRICALANDELECTRONICSENGINEERING", "ELECTRICALENGINEERING", "EEE", "EEEBLOCK" -> "EEE";
+            case "F", "FBLOCK", "INFORMATIONTECHNOLOGY", "IT", "ITBLOCK" -> "IT";
+            case "A", "ABLOCK", "ADMIN", "ADMINBLOCK", "ADMINISTRATION", "ADMINISTRATIONBLOCK" -> "ADMIN_BLOCK";
+            case "S", "SBLOCK", "SILVERJUBILEE", "SILVERJUBILEEBLOCK" -> "SILVER_JUBILEE_BLOCK";
             case "MECHANICALENGINEERING", "MECH" -> "MECH";
             case "CIVILENGINEERING", "CIVIL" -> "CIVIL";
             default -> v;
+        };
+    }
+
+    private static String roomApprovalDepartment(String roomNo) {
+        if (roomNo == null || roomNo.isBlank()) return "";
+        String value = roomNo.trim().toUpperCase(Locale.ROOT);
+        char prefix = value.charAt(0);
+        return switch (prefix) {
+            case 'A' -> "ADMIN_BLOCK";
+            case 'B' -> "EEE";
+            case 'C' -> "CSE";
+            case 'D' -> "ECE";
+            case 'F' -> "IT";
+            case 'S' -> "SILVER_JUBILEE_BLOCK";
+            default -> "";
         };
     }
 
@@ -326,9 +376,33 @@ public class BookingController {
     public ResponseEntity<?> cancel(@PathVariable Integer id, @RequestParam String role, @RequestParam String username) {
         Booking b = bookingRepository.findById(id).orElse(null);
         if (b == null) return ResponseEntity.notFound().build();
-        if (!"ADMIN".equalsIgnoreCase(role) && !("FACULTY".equalsIgnoreCase(role) && b.getBookedBy().equalsIgnoreCase(username))) return ResponseEntity.status(403).body(Map.of("success",false,"error","You are not allowed to cancel this booking."));
+        if (!"ADMIN".equalsIgnoreCase(role) && !(("FACULTY".equalsIgnoreCase(role) || "HEAD_STAFF".equalsIgnoreCase(role)) && b.getBookedBy().equalsIgnoreCase(username))) return ResponseEntity.status(403).body(Map.of("success",false,"error","You are not allowed to cancel this booking."));
+        if (!Set.of("PENDING_APPROVAL", "CONFIRMED").contains(Objects.toString(b.getStatus(), "").toUpperCase(Locale.ROOT))) return ResponseEntity.status(409).body(Map.of("success",false,"error","Only pending or approved bookings can be cancelled."));
+        LocalDate today = LocalDate.now(CAMPUS_ZONE); LocalTime now = LocalTime.now(CAMPUS_ZONE);
+        if (b.getBookingDate().isBefore(today) || (b.getBookingDate().equals(today) && !b.getStartTime().isAfter(now))) return ResponseEntity.status(409).body(Map.of("success",false,"error","A booking that has already started or passed cannot be cancelled. Contact Admin if a correction is required."));
+        String previousStatus = b.getStatus();
         b.setStatus("CANCELLED"); bookingRepository.save(b);
-        realtimeHub.publish("BOOKING_CHANGED", "Booking for room " + b.getRoomNo() + " was cancelled.", Map.of("roomId", b.getRoomId(), "roomNo", b.getRoomNo(), "date", b.getBookingDate().toString(), "startTime", b.getStartTime().toString(), "endTime", b.getEndTime().toString(), "status", "CANCELLED"));
-        return ResponseEntity.ok(Map.of("success",true,"message","Booking cancelled."));
+        String message = "Booking for " + b.getRoomNo() + " on " + b.getBookingDate() + " " + b.getStartTime() + "-" + b.getEndTime() + " was cancelled by " + username + ". Previous status: " + previousStatus + ".";
+        realtimeHub.publish("BOOKING_CHANGED", message, Map.of("roomId", b.getRoomId(), "roomNo", b.getRoomNo(), "date", b.getBookingDate().toString(), "startTime", b.getStartTime().toString(), "endTime", b.getEndTime().toString(), "status", "CANCELLED"));
+        User owner = userRepository.findByEmail(b.getBookedBy()).orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
+        String ownerEmail = owner == null ? b.getBookedBy() : Objects.toString(owner.getEmail(), owner.getUsername());
+        if (ownerEmail != null && !ownerEmail.isBlank()) {
+            Notification n = new Notification(); n.setRecipientEmail(ownerEmail); n.setType("BOOKING_CANCELLED"); n.setTitle("Booking cancelled"); n.setMessage(message); n.setBookingId(b.getBookingId()); notificationRepository.save(n);
+            try { emailService.send(ownerEmail, owner == null ? "Faculty" : owner.getName(), "GNITS Smart Campus: booking cancelled", "<p>" + message + "</p>", message); } catch (Exception ignored) { }
+            try { pushNotifications.send(ownerEmail, "Booking cancelled", message, Map.of("bookingId", String.valueOf(b.getBookingId()), "type", "BOOKING_CANCELLED")); } catch (Exception ignored) { }
+        }
+        {
+            String cancellationAuthority = roomApprovalDepartment(b.getRoomNo());
+            if (cancellationAuthority.isBlank()) cancellationAuthority = normalizeDepartment(b.getApprovalDepartment());
+            for (User head : userRepository.findByRoleIgnoreCase("HEAD_STAFF")) {
+                if (cancellationAuthority.equals(normalizeDepartment(head.getDepartment()))) {
+                    String recipient = head.getEmail() == null || head.getEmail().isBlank() ? head.getUsername() : head.getEmail();
+                    Notification n = new Notification(); n.setRecipientEmail(recipient); n.setType("BOOKING_CANCELLED"); n.setTitle("Booking cancellation notice"); n.setMessage(message); n.setBookingId(b.getBookingId()); notificationRepository.save(n);
+                    try { emailService.send(recipient, "GNITS Smart Campus", "Booking cancellation notice", "<p>" + message + "</p>", message); } catch (Exception ignored) { }
+                    try { pushNotifications.send(recipient, "Booking cancellation notice", message, Map.of("bookingId", String.valueOf(b.getBookingId()), "type", "BOOKING_CANCELLED")); } catch (Exception ignored) { }
+                }
+            }
+        }
+        return ResponseEntity.ok(Map.of("success",true,"message","Booking cancelled and the relevant approver has been notified."));
     }
 }

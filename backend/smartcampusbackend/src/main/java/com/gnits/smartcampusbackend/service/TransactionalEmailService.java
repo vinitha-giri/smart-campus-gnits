@@ -11,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ import java.util.Map;
 public class TransactionalEmailService {
     private static final Logger log = LoggerFactory.getLogger(TransactionalEmailService.class);
     private final ObjectMapper mapper = new ObjectMapper();
-    private final HttpClient http = HttpClient.newBuilder().build();
+    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     public boolean enabled() {
         return value("BREVO_API_KEY") != null
@@ -52,6 +53,7 @@ public class TransactionalEmailService {
                     "textContent", text
             );
             HttpRequest request = HttpRequest.newBuilder()
+                    .timeout(Duration.ofSeconds(20))
                     .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
                     .header("accept", "application/json")
                     .header("api-key", apiKey)
@@ -60,17 +62,25 @@ public class TransactionalEmailService {
                     .build();
 
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() >= 200 && response.statusCode() < 300) return true;
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("Transactional email accepted by provider for recipient {} (HTTP {}).", maskEmail(to), response.statusCode());
+                return true;
+            }
 
-            log.warn("Transactional email provider returned HTTP {}: {}", response.statusCode(), response.body());
+            log.error("Transactional email provider rejected message for recipient {} with HTTP {}: {}",
+                    maskEmail(to), response.statusCode(), response.body());
         } catch (Exception e) {
-            log.warn("Transactional email delivery failed: {}", e.getMessage());
+            log.error("Transactional email delivery failed for recipient {}: {}", maskEmail(to), e.getMessage(), e);
         }
         return false;
     }
 
-    @Async("emailExecutor")
-    public void sendVerification(String email, String name, String link) {
+    /**
+     * Verification mail is sent synchronously so signup/resend can report whether
+     * the provider accepted the message instead of displaying a false success.
+     * Other transactional notifications remain asynchronous.
+     */
+    public boolean sendVerification(String email, String name, String link) {
         String safeName = esc(name);
         String html = page(
                 "Verify your GNITS Smart Campus account",
@@ -79,7 +89,7 @@ public class TransactionalEmailService {
                         + button(link, "Verify my email")
                         + "<p>This verification link expires in 24 hours and can be used only once.</p>"
                         + "<p>If you did not create this account, you can safely ignore this email.</p>");
-        send(email, name, "Verify your GNITS Smart Campus email", html,
+        return send(email, name, "Verify your GNITS Smart Campus email", html,
                 "Verify your GNITS Smart Campus email: " + link);
     }
 
@@ -172,6 +182,13 @@ public class TransactionalEmailService {
         if (value == null) return "";
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) return "<empty>";
+        int at = email.indexOf('@');
+        if (at <= 1) return "***";
+        return email.substring(0, 1) + "***" + email.substring(at);
     }
 
     private String value(String key) {

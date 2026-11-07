@@ -3,10 +3,12 @@ package com.gnits.smartcampusbackend.controller;
 import com.gnits.smartcampusbackend.entity.Booking;
 import com.gnits.smartcampusbackend.entity.Room;
 import com.gnits.smartcampusbackend.entity.TimetableEntry;
+import com.gnits.smartcampusbackend.entity.User;
 import com.gnits.smartcampusbackend.repository.BookingRepository;
 import com.gnits.smartcampusbackend.realtime.RealtimeHub;
 import com.gnits.smartcampusbackend.repository.RoomRepository;
 import com.gnits.smartcampusbackend.repository.TimetableEntryRepository;
+import com.gnits.smartcampusbackend.repository.UserRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -29,6 +31,7 @@ public class RoomController {
     private final TimetableEntryRepository timetableEntryRepository;
     private final BookingRepository bookingRepository;
     private final RealtimeHub realtimeHub;
+    private final UserRepository userRepository;
 
     // Live occupancy is the hottest endpoint in the app. A short server-side
     // cache lets hundreds of clients share the same snapshot instead of
@@ -48,11 +51,13 @@ public class RoomController {
     public RoomController(RoomRepository roomRepository,
                           TimetableEntryRepository timetableEntryRepository,
                           BookingRepository bookingRepository,
-                          RealtimeHub realtimeHub) {
+                          RealtimeHub realtimeHub,
+                          UserRepository userRepository) {
         this.roomRepository = roomRepository;
         this.timetableEntryRepository = timetableEntryRepository;
         this.bookingRepository = bookingRepository;
         this.realtimeHub = realtimeHub;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
@@ -302,6 +307,13 @@ public class RoomController {
                 event.put("status", "BOOKED");
                 event.put("title", b.getPurpose());
                 event.put("section", null);
+                // Faculty can see who owns an approved booking so they can
+                // coordinate directly before submitting a priority review.
+                User owner = userRepository.findByEmail(b.getBookedBy())
+                        .orElseGet(() -> userRepository.findByUsername(b.getBookedBy()).orElse(null));
+                event.put("bookedByName", owner == null ? "Faculty member" : owner.getName());
+                event.put("bookedByDepartment", owner == null ? "" : Objects.toString(owner.getDepartment(), ""));
+                event.put("bookingStatus", "APPROVED");
                 events.add(event);
             }
         }

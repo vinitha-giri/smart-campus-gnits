@@ -15,6 +15,7 @@ import 'room_management_screen.dart';
 import 'campus_map_screen.dart';
 import 'notifications_screen.dart';
 import 'approval_requests_screen.dart';
+import 'booking_conflicts_screen.dart';
 import 'my_bookings_screen.dart';
 import 'session_manager.dart';
 import 'push_notification_service.dart';
@@ -51,7 +52,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         NavItem('Live Occupancy', Icons.radar_outlined, Icons.radar_rounded),
         NavItem('Timetable', Icons.calendar_month_outlined, Icons.calendar_month_rounded),
         NavItem('Classrooms', Icons.door_front_door_outlined, Icons.door_front_door_rounded),
+        NavItem('Find Classroom', Icons.event_available_outlined, Icons.event_available_rounded),
+        NavItem('My Bookings', Icons.event_note_outlined, Icons.event_note_rounded),
         NavItem('Approval Requests', Icons.fact_check_outlined, Icons.fact_check_rounded),
+        NavItem('Conflict Reviews', Icons.gavel_outlined, Icons.gavel_rounded),
         NavItem('Notifications', Icons.notifications_none_outlined, Icons.notifications_rounded),
       ];
     }
@@ -62,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         NavItem('Timetable', Icons.calendar_month_outlined, Icons.calendar_month_rounded),
         NavItem('Classrooms', Icons.door_front_door_outlined, Icons.door_front_door_rounded),
         NavItem('My Bookings', Icons.event_note_outlined, Icons.event_note_rounded),
+        NavItem('Conflict Reviews', Icons.gavel_outlined, Icons.gavel_rounded),
       ];
     }
     return const [
@@ -70,8 +75,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       NavItem('Classrooms', Icons.door_front_door_outlined, Icons.door_front_door_rounded),
       NavItem('Timetable', Icons.calendar_month_outlined, Icons.calendar_month_rounded),
       NavItem('Bookings', Icons.event_note_outlined, Icons.event_note_rounded),
+      NavItem('Approval Requests', Icons.fact_check_outlined, Icons.fact_check_rounded),
       NavItem('Manage Rooms', Icons.settings_outlined, Icons.settings_rounded),
       NavItem('Manage Users', Icons.people_outline_rounded, Icons.people_rounded),
+      NavItem('Conflict Reviews', Icons.gavel_outlined, Icons.gavel_rounded),
       NavItem('Campus Analytics', Icons.insights_outlined, Icons.insights_rounded),
     ];
   }
@@ -114,6 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       case 'My Bookings':
       case 'Bookings': return MyBookingsScreen(role: widget.role, username: widget.username);
       case 'Approval Requests': return ApprovalRequestsScreen(email: widget.username);
+      case 'Conflict Reviews': return BookingConflictsScreen(role: widget.role, username: widget.username);
       case 'Notifications': return NotificationsScreen(email: widget.username);
       case 'Manage Rooms': return const RoomManagementScreen();
       case 'Campus Analytics': return const AnalyticsScreen();
@@ -195,85 +203,86 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     if (result != null) _navigateByLabel('Classrooms', query: result);
   }
 
-
-Future<void> _openFeedback() async {
-  final controller = TextEditingController();
-
-  final feedback = await showDialog<String>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Send Feedback'),
-      content: TextField(
-        controller: controller,
-        maxLines: 5,
-        decoration: const InputDecoration(
-          hintText: 'Share your feedback...',
-          border: OutlineInputBorder(),
+  Future<void> _openFeedback() async {
+    final controller = TextEditingController();
+    final feedback = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.feedback_outlined, color: Color(0xFF1D4ED8)),
+            SizedBox(width: 10),
+            Expanded(child: Text('Share your feedback')),
+          ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () =>
-              Navigator.pop(dialogContext, controller.text),
-          child: const Text('Send'),
-        ),
-      ],
-    ),
-  );
-
-  controller.dispose();
-
-  if (!mounted || feedback == null || feedback.trim().isEmpty) {
-    return;
-  }
-
-  
-
-
-final body =
-    'Hello Vinitha,\n\n'
-    'My feedback about GNITS Smart Campus:\n\n'
-    '${feedback.trim()}\n\n'
-    'Role: ${widget.role}\n'
-    'Account: ${widget.username}\n';
-
-final uri = Uri.parse(
-  'mailto:girivinitha3098@gmail.com'
-  '?subject=Smart%20Campus%20Feedback'
-  '&body=${Uri.encodeComponent(body)}',
-);
-
-  try {
-    final launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not open an email app. Please check your email setup.',
+        content: SizedBox(
+          width: 460,
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 4,
+            maxLines: 8,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              hintText: 'Tell us what you liked, found confusing, or would like us to improve...',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
           ),
         ),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to open the email compose screen.'),
-        ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Please enter your feedback first.')),
+                );
+                return;
+              }
+              Navigator.of(dialogContext).pop(value);
+            },
+            icon: const Icon(Icons.mail_outline_rounded, size: 18),
+            label: const Text('Continue to email'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (!mounted || feedback == null || feedback.trim().isEmpty) return;
+
+    // Open Gmail's browser compose page explicitly instead of a mailto: link,
+    // which can launch Outlook or another desktop-default mail application.
+    final uri = Uri.https(
+      'mail.google.com',
+      '/mail/',
+      <String, String>{
+        'view': 'cm',
+        'fs': '1',
+        'to': 'girivinitha3098@gmail.com',
+        'su': 'Smart Campus Feedback',
+        'body': 'Hello Vinitha,\n\nMy feedback about GNITS Smart Campus:\n\n${feedback.trim()}\n\nRole: ${widget.role}\nAccount: ${widget.username}\n',
+      },
+    );
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Gmail in your browser. Please visit mail.google.com and email girivinitha3098@gmail.com with the subject “Smart Campus Feedback”.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Gmail in your browser. Please visit mail.google.com and email girivinitha3098@gmail.com with the subject “Smart Campus Feedback”.')),
+        );
+      }
     }
   }
-}
-
-
 
   void _logout() {
     unawaited(PushNotificationService.dispose());

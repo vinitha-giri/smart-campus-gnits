@@ -85,15 +85,18 @@ public class AuthController {
         user.setEmailVerified(false);
         userRepository.save(user);
 
-        issueVerification(user);
+        boolean emailSent = issueVerification(user);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Account created. Please verify your college email before signing in.",
+                "message", emailSent
+                        ? "Account created. A verification email was accepted by the email provider. Please check your inbox and spam folder."
+                        : "Account created, but the verification email could not be sent. Please check the server email configuration and use Resend verification from the login screen.",
                 "email", email,
                 "username", email,
                 "role", role,
-                "emailVerified", false
+                "emailVerified", false,
+                "emailSent", emailSent
         ));
     }
 
@@ -165,8 +168,14 @@ public class AuthController {
         if (user == null || !Boolean.FALSE.equals(user.getEmailVerified())) {
             return ResponseEntity.ok(Map.of("success", true, "message", "If that college account exists and still needs verification, a verification email has been sent."));
         }
-        issueVerification(user);
-        return ResponseEntity.ok(Map.of("success", true, "message", "A new verification email has been sent."));
+        boolean emailSent = issueVerification(user);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "emailSent", emailSent,
+                "message", emailSent
+                        ? "The email provider accepted a new verification email. Please check your inbox and spam folder."
+                        : "The verification email could not be sent. Please contact the Smart Campus administrator."
+        ));
     }
 
     @GetMapping("/verify-email")
@@ -331,7 +340,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("success", true, "message", "User account deleted successfully.", "username", targetUsername));
     }
 
-    private void issueVerification(User user) {
+    private boolean issueVerification(User user) {
         String raw = UUID.randomUUID().toString() + UUID.randomUUID();
         EmailToken token = new EmailToken();
         token.setUserId(user.getId());
@@ -339,7 +348,13 @@ public class AuthController {
         token.setPurpose(VERIFY);
         token.setExpiresAt(LocalDateTime.now().plusHours(24));
         tokenRepository.save(token);
-        emailService.sendVerification(user.getEmail(), user.getName(), baseUrl() + "/api/auth/verify-email?token=" + URLEncoder.encode(raw, StandardCharsets.UTF_8));
+        boolean sent = emailService.sendVerification(user.getEmail(), user.getName(),
+                baseUrl() + "/api/auth/verify-email?token=" + URLEncoder.encode(raw, StandardCharsets.UTF_8));
+        if (!sent) {
+            // Keep the account pending verification. A resend creates a fresh token.
+            return false;
+        }
+        return true;
     }
 
     private void issuePasswordReset(User user) {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
+import 'booking_conflicts_screen.dart';
 
 const bookingNavy = Color(0xFF0B1533);
 const bookingPurple = Color(0xFF4F46E5);
@@ -34,6 +35,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String roomType = 'ALL';
   bool loading = false;
   List<Map<String, dynamic>> rooms = [];
+  List<Map<String, dynamic>> unavailableRooms = [];
   List<Map<String, dynamic>> bookings = [];
   String? error;
 
@@ -144,9 +146,11 @@ class _BookingScreenState extends State<BookingScreen> {
       if (mounted) {
         setState(() {
           rooms = rawRooms is List
-              ? rawRooms
-                  .map((item) => Map<String, dynamic>.from(item as Map))
-                  .toList()
+              ? rawRooms.map((item) => Map<String, dynamic>.from(item as Map)).toList()
+              : <Map<String, dynamic>>[];
+          final rawUnavailable = body['unavailableRooms'];
+          unavailableRooms = rawUnavailable is List
+              ? rawUnavailable.map((item) => Map<String, dynamic>.from(item as Map)).toList()
               : <Map<String, dynamic>>[];
         });
       }
@@ -155,6 +159,7 @@ class _BookingScreenState extends State<BookingScreen> {
         setState(() {
           error = e.toString();
           rooms = [];
+          unavailableRooms = [];
         });
       }
     } finally {
@@ -907,7 +912,9 @@ class _BookingScreenState extends State<BookingScreen> {
                           color: isBooking ? Colors.blueAccent : Colors.deepPurple,
                         ),
                         title: Text('${event['date']} • ${event['startTime']}–${event['endTime']}'),
-                        subtitle: Text('${event['title'] ?? 'Scheduled class'}'),
+                        subtitle: Text(isBooking
+                            ? '${event['title'] ?? 'Approved booking'}\nBooked by: ${event['bookedByName'] ?? 'Faculty member'}${(event['bookedByDepartment'] ?? '').toString().isEmpty ? '' : ' • ${event['bookedByDepartment']}'}\nStatus: Approved'
+                            : '${event['title'] ?? 'Scheduled class'}'),
                       );
                     },
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -925,57 +932,82 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
+  bool _isFutureBooking(Map<String, dynamic> booking) {
+    try {
+      final d = DateTime.parse('${booking['bookingDate']}');
+      final t = (booking['startTime'] ?? '00:00:00').toString().split(':');
+      final start = DateTime(d.year, d.month, d.day, int.parse(t[0]), int.parse(t[1]));
+      return start.isAfter(DateTime.now());
+    } catch (_) { return false; }
+  }
+
+  String _bookingStatus(Map<String, dynamic> booking) {
+    final status = '${booking['status'] ?? 'CONFIRMED'}'.toUpperCase();
+    if (status == 'CONFIRMED' && !_isFutureBooking(booking)) return 'COMPLETED';
+    return status;
+  }
+
+  Widget _statusChip(String status) {
+    final Color color = status == 'CONFIRMED' ? const Color(0xFF15803D)
+        : status == 'PENDING_APPROVAL' ? const Color(0xFFB45309)
+        : status == 'REJECTED' ? const Color(0xFFB91C1C) : bookingMuted;
+    final label = status == 'CONFIRMED' ? 'APPROVED' : status.replaceAll('_', ' ');
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(color: color.withOpacity(.10), borderRadius: BorderRadius.circular(20)),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)));
+  }
+
   Widget _bookingsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text('My bookings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: bookingNavy)),
-            ),
-            Text(
-              widget.role == 'ADMIN' ? 'All confirmed bookings' : 'Your confirmed bookings',
-              style: const TextStyle(color: bookingMuted, fontSize: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (bookings.isEmpty)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: Text('No confirmed bookings yet.', style: TextStyle(color: bookingMuted)),
-            ),
-          )
-        else
-          Card(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Room')),
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('Time')),
-                  DataColumn(label: Text('Purpose')),
-                  DataColumn(label: Text('Booked by')),
-                  DataColumn(label: Text('Action')),
-                ],
-                rows: bookings.map((booking) {
-                  return DataRow(cells: [
-                    DataCell(Text('${booking['roomNo']}', style: const TextStyle(fontWeight: FontWeight.w800))),
-                    DataCell(Text('${booking['bookingDate']}')),
-                    DataCell(Text('${booking['startTime']}–${booking['endTime']}')),
-                    DataCell(Text('${booking['purpose']}')),
-                    DataCell(Text('${booking['bookedBy']}')),
-                    DataCell(TextButton(onPressed: () => cancel(booking), child: const Text('Cancel'))),
-                  ]);
-                }).toList(),
-              ),
-            ),
-          ),
-      ],
-    );
+    final visible = bookings.take(5).toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Expanded(child: Text('My booking activity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: bookingNavy))),
+        TextButton(onPressed: refresh, child: const Text('Refresh')),
+      ]),
+      const SizedBox(height: 8),
+      if (visible.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('No booking activity yet.', style: TextStyle(color: bookingMuted))))
+      else ...visible.map((booking) {
+        final status = _bookingStatus(booking);
+        final canCancel = (status == 'PENDING_APPROVAL' || status == 'CONFIRMED') && _isFutureBooking(booking);
+        return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
+          const Icon(Icons.meeting_room_outlined, color: bookingPurple), const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${booking['roomNo'] ?? 'Room'} • ${booking['bookingDate'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800, color: bookingNavy)),
+            const SizedBox(height: 3), Text('${booking['startTime'] ?? ''} – ${booking['endTime'] ?? ''}  ·  ${booking['purpose'] ?? ''}', style: const TextStyle(fontSize: 11, color: bookingMuted), maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 6), _statusChip(status),
+          ])),
+          if (canCancel) TextButton(onPressed: () => cancel(booking), child: Text(status == 'PENDING_APPROVAL' ? 'Cancel request' : 'Cancel booking'))
+          else const SizedBox(width: 8),
+        ])));
+      }),
+      if (bookings.length > 5) Text('${bookings.length - 5} older records available in My Bookings.', style: const TextStyle(color: bookingMuted, fontSize: 11)),
+    ]);
+  }
+
+  Widget _unavailableSection() {
+    if (unavailableRooms.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 22),
+      const Text('Unavailable classrooms', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: bookingNavy)),
+      const SizedBox(height: 10),
+      ...unavailableRooms.map((item) {
+        final status = '${item['status'] ?? 'BOOKED'}'.toUpperCase();
+        final bookingId = item['bookingId'];
+        final owner = '${item['bookedByName'] ?? item['bookedBy'] ?? 'Faculty'}';
+        final ownerIdentity = '${item['bookedBy'] ?? ''}';
+        return Card(margin: const EdgeInsets.only(bottom: 9), child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Expanded(child: Text('${item['roomNo']}', style: const TextStyle(fontWeight: FontWeight.w900, color: bookingNavy))), _statusChip(status)]),
+          const SizedBox(height: 5),
+          Text('Booked by: $owner  ·  ${item['department'] ?? 'Department not listed'}', style: const TextStyle(fontSize: 12, color: bookingMuted)),
+          Text('Purpose: ${item['purpose'] ?? 'Not provided'}', style: const TextStyle(fontSize: 12, color: bookingMuted)),
+          Text('${item['bookingDate']}  ·  ${item['startTime']}–${item['endTime']}', style: const TextStyle(fontSize: 12, color: bookingMuted)),
+          if (widget.role == 'FACULTY' && bookingId != null && ownerIdentity.toLowerCase() != widget.username.toLowerCase())
+            Align(alignment: Alignment.centerRight, child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingConflictsScreen(role: widget.role, username: widget.username, initialBookingId: int.tryParse('$bookingId')))),
+              icon: const Icon(Icons.gavel_outlined, size: 17), label: const Text('Request priority review'))),
+        ])));
+      }),
+    ]);
   }
 
   @override
@@ -1050,6 +1082,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 _availabilityContent(),
                 if (widget.role != 'STUDENT') ...[
                   const SizedBox(height: 30),
+                  _unavailableSection(),
+                  const SizedBox(height: 22),
                   _bookingsSection(),
                 ],
               ],
